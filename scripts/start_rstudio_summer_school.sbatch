@@ -10,7 +10,7 @@
 #
 # EDIT: --partition (line 13), --nodelist (line 14) and PORT (line 27)
 #
-#SBATCH --partition=ngs.q
+#SBATCH --partition=ngscourse.q
 #SBATCH --nodelist=compute-2-3
 
 ###################################                       
