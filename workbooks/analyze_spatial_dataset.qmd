@@ -943,13 +943,11 @@ Next, we create a Seurat object that only includes the bins that fall within the
 
 cortex_bins = Cells(sc[["cortex"]])
 cortex = subset(sc, cells=cortex_bins)
-cortex[["sketch"]] = NULL
-cortex[["pca.sketch"]] = NULL
-cortex[["umap.sketch"]] = NULL
-cortex[["pca.008um"]] = NULL
-cortex[["umap.008um"]] = NULL
-cortex[["banksy_umap.008um"]] = NULL
-cortex
+
+# Slim it down
+cortex = DietSeurat(cortex, misc=FALSE)
+cortex@tools = list()
+cortex@commands = list()
 ```
 
 To make the analysis computationally manageable, we sketch the dataset down to 50,000 bins for this tutorial, then perform feature selection, data scaling and PCA:
@@ -1081,7 +1079,7 @@ cortex = AddMetaData(cortex, metadata=RCTD_results)
 
 # Replace NA (not available) with "unknown"
 cortex$doublet = as.character(cortex$doublet)
-cortex$doublet[is.na(cortex$doublet)] = "unknown"
+cortex$doublet[is.na(cortex$doublet)] = "Unknown"
 cortex$doublet = factor(cortex$doublet)
 
 cortex$first_cell_type = as.character(cortex$first_cell_type)
@@ -1099,8 +1097,6 @@ We now project the RCTD results from the sketch cortex dataset to the full corte
 
 ```{r}
 #| label: annot_11
-
-DefaultAssay(cortex) = "RNA.008um"
 
 cortex = ProjectData(cortex,
                  sketched.assay="sketch", assay="RNA.008um", 
