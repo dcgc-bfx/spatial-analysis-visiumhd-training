@@ -167,9 +167,10 @@ SpatialDimPlot(sc, cells.highlight=filtered_bins_mito, cols.highlight=c("#FFFF00
 
 ::: {.callout-note}
 ## Assignment
-Calculate another QC metric `pMito_RNA.008um` that contains the percentage of counts from hemoglobin genes per bin. You can identify hemoglobin genes with the prefix "^Hb[ab]-".
 
-Then plot it as violin plot and as spatial plot. Do many bins have hemoglobin?
+Calculate another QC metric that shows the percentage of counts from hemoglobin genes per bin. You can identify hemoglobin genes by the prefix '^Hb[ab]-'.
+
+Next, visualize this metric using both a violin plot and a spatial plot. Do many bins show a high proportion of hemoglobin expression?
 :::
 
 ## Filtering of bins
@@ -403,6 +404,12 @@ Visualize first two PCs:
 
 DimPlot(sc, reduction="pca.sketch", dims=c(1, 2))
 ```
+
+::: {.callout-note}
+## Assignment
+
+Visualize the PCA for PC2 and PC3. 
+:::
 
 In PCA, genes with the largest variation between bins will have the biggest influence on the PCs. The first PC captures the greatest variance across the dataset. The next PC captures the greatest remaining amount of variance, and so on. This way, the top PCs are likely to represent the biological signal where multiple genes are affected by the same biological processes in a coordinated way. In contrast, random technical or biological noise that affects each gene independently are contained in later PCs. 
 

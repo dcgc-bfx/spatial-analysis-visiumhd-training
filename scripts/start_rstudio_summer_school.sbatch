@@ -1,17 +1,15 @@
 #!/bin/sh
 #SBATCH --time=96:00:00
-#SBATCH --signal=B:SIGUSR1@300
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=30
+#SBATCH --signal=B:SIGUSR1@300    
+#SBATCH --ntasks=30
+#SBATCH --nodes=1
 #SBATCH --mem=92000
 #SBATCH --output=rstudio_summer_school_login.txt
 #SBATCH --error=rstudio_summer_school_errors.txt
 #SBATCH --job-name=ngscnsummerschool
-#
-# EDIT: --partition (line 13), --nodelist (line 14) and PORT (line 27)
-#
-#SBATCH --partition=ngs.q
-#SBATCH --nodelist=compute-2-3
+#SBATCH --partition=ngscourse.q
+
+# EDIT: PORT (line 27)
 
 ###################################                       
 # USER-SPECIFIC SETTINGS (CHANGE) #
