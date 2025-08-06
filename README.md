@@ -1,8 +1,8 @@
 ![Banner](docs/spatial_banner.png)
 
-# Analysis of Spatial Transcriptomics Data
+# Analysis of Spatial Transcriptomics Data (Visium HD)
 
-Welcome to our **hands-on workbook collection** to learn spatial transcriptomics data analysis!
+Welcome to our **hands-on workbook collection** to learn spatial transcriptomics data analysis, with a focus on 10x Genomics Visium HD data!
 
 Spatial transcriptomics allows us to measure gene expression across tissue sections while preserving spatial information, helping us understand not just **what** genes are active, but **where** they are active.
 
