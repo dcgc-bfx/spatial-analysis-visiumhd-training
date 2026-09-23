@@ -150,7 +150,6 @@ The first step in analyzing your data is to import it into Seurat. Here, we load
 
 ```{r}
 #| label: dataset_2
-
 sc = Load10X_Spatial("datasets/visiumhd_mouse_brain", bin.size=c(8, 16), assay="RNA")
 sc$orig.ident = "brain"
 Idents(sc) = "brain"
@@ -380,6 +379,10 @@ Each assay and bin size should have a corresponding image. You can access a spec
 sc[["slice1.008um"]]
 ```
 
+Note that the image also has a default assay meaning the image is linked to the assay. Whenever we plot data from this assay in a spatial context, this image will be used.
+
+### Tissue image
+
 When we refer to the image in spatial transcriptomics, we usually mean the spatial coordinates associated with each bin. These coordinates tell us where each bin is located within the tissue section but not what the tissue looks like visually.
 
 However, Seurat also allows us to view the underlying histological image that was used to derive these spatial coordinates. This can help us visually inspect the tissue morphology in parallel with gene expression patterns.
@@ -389,13 +392,188 @@ In this example, **Hematoxylin and eosin (H&E) staining** was used. H&E staining
 Here is how we can visualize the raw tissue image grid along with the spatial:
 
 ```{r}
-#| label: dataset_21
+#| label: dataset_22
 #| out-width: 4in
 #| out-height: 4in
 #| fig-align: center
 
 gridExtra::grid.arrange(GetImage(sc[["slice1.008um"]], method="grob"))
 ```
+
+By default, Seurat loads the low-resolution version of the image (``tissue_lowres_image.png` in Spaceranger output). See here - https://github.com/satijalab/seurat/issues/8996 - how load the high-resolution version of the image (`tissue_hires_image.png` in Spaceranger output) instead. 
+
+### Coordinates
+
+Spatial coordinates are available in the Seurat in three different coordinate systems depending on the underlying image:
+
+- **original**: Pixel coordinates for the original, full resolution image (provided by the user when running Spaceranger)
+- **hires**: Pixel coordinates for a downsampled, high-resolution version of the original image (`tissue_hires_image.png` in Spaceranger output)
+- **lowres**: Pixel coordinates for a downsampled, low-resolution version of the original (`tissue_lowres_image.png` in Spaceranger output)
+
+
+
+and can be accessed using the `GetTissueCoordinates` function. This function retrieves the coordinates of the bins on the tissue image:
+
+
+```{r}
+#| label: dataset_21
+
+coordinates = GetTissueCoordinates(sc, image="slice1.008um")
+coordinates %>% head(5)
+```
+
+
+### Image coordinates
+We can get the image coordinates of the bins (in pixel) using the `GetTissueCoordinates` function by setting the `scale` parameter to the `lowres` image:
+
+```{r}
+#| label: dataset_23
+
+coordinates = GetTissueCoordinates(sc, image="slice1.008um", scale="lowres")
+coordinates %>% head(5)
+```
+
+The maximum of `x` is approximately in image width in pixel. The maximum of `y` is approximately in image height in pixel.
+
+
+### Spatial coordinates and image coordinates
+
+Now we have learnt that there are spatial coordinates and an (underlying) image. This means that there are two coordinate systems here:
+
+- **spatial coordinates**: The coordinates of the bins on the Visium HD slide. These vary depending on bin size.
+- **image coordinates**: The coordinates of the pixels in the image. These vary depending on the image resolution.
+
+This is illustrated in the following (a bit complicated) plot where we plot one bin in its image coordinates and label it adding its spatial coordinates:
+
+```{r}
+#| label: dataset_24
+
+# Select a bin
+bin = "s_008um_00301_00321-1"
+
+# Get image and spatial coordinates
+spatial_coordinates = GetTissueCoordinates(sc, image="slice1.008um")
+bin_spatial_x = round(coordinates[bin, "x"])
+bin_spatial_y = round(coordinates[bin, "y"])
+
+image_coordinates = GetTissueCoordinates(sc, image="slice1.008um", scale="lowres")
+bin_image_x = image_coordinates[bin, "x"]
+bin_image_y = image_coordinates[bin, "y"]
+
+# Make a spatial plot
+p = SpatialDimPlot(sc, cells.highlight=bin)
+
+# Add the image coordinates to the plot, remove legend and relabel axes
+p = p + theme_minimal() + NoLegend()
+p = p + xlab("image_x") + ylab("image_y")
+
+# Highlight the bin bigger
+p = p + 
+  annotate("point", x=bin_image_x, y=bin_image_y, size=1, color="#FFFF00") +
+  annotate("text", x=bin_image_x, y=bin_image_y, label=paste0("spatial_x=", bin_spatial_x, " spatial_y=", bin_spatial_y), vjust=-1)
+
+# Add bin info as title
+p = p + ggtitle(bin)
+p
+```
+
+Spatial coordinates are converted into image coordinates by multiplying them with scale factor. The scale factors can be accessed using `ScaleFactors` function on the image object. 
+
+```{r}
+#| label: dataset_25
+
+# Get spatial coordinates
+spatial_coordinates = GetTissueCoordinates(sc, image="slice1.008um") %>% head()
+
+# Get the scale factors that convert to image coordinates
+scale_factors = ScaleFactors(sc[["slice1.008um"]])[["lowres"]]
+
+# Convert to image coordinates
+image_coordinates = spatial_coordinates
+image_coordinates$x = spatial_coordinates$x * scale_factors
+image_coordinates$y = spatial_coordinates$y * scale_factors
+image_coordinates
+```
+
+When we compare the converted output to the output of the `GetTissueCoordinates` function with `scale="lowres"`, we can see that they are the same:
+
+```{r}
+#| label: dataset_26
+
+# Compare to coordinates from function
+GetTissueCoordinates(sc, image="slice1.008um", scale="lowres") %>% head()
+```
+
+### Zooming into image regions
+
+We can also zoom into specific regions of the image. To do so, we provide coordinates or a list of bins and Seurat will create a "new image" (a field of view that crops the original image).
+
+First, we can use the `Crop` function to select a specific, rectagular region:
+
+```{r}
+#| label: dataset_27
+
+# Using tissue/spatial coordinates (x: 5000 - 8000, y: 5000 - 8000)
+sc[["region1"]] = Crop(sc[["slice1.008um"]], x=c(5000, 8000), y=c(5000, 8000))
+
+p1 = SpatialFeaturePlot(sc, images="region1", "nCount_RNA.008um", pt.size.factor = 10)
+
+# Using image coordinates (x: 100 - 200, y: 100 - 200)
+scale_factors = ScaleFactors(sc[["slice1.008um"]])[["lowres"]]
+sc[["region2"]] = Crop(sc[["slice1.008um"]], x=c(100, 120) / scale_factors, y=c(100, 120) / scale_factors, scale="lowres")
+
+p2 = SpatialFeaturePlot(sc, images="region2", "nCount_RNA.008um", pt.size.factor = 20)
+
+# Using a list of bins. We simply select all bins using image coordinates.
+selected_bins = GetTissueCoordinates(sc, image="slice1.008um", scale="lowres") %>%
+  filter(x > 300 & x < 340 & y > 300 & y < 340) %>%
+  pull(cell)
+
+sc[["region3"]] = subset(sc[["slice1.008um"]], cells=selected_bins)
+p3 = SpatialFeaturePlot(sc, images="region3", "nCount_RNA.008um", pt.size.factor = 10)
+
+
+p1 | p2 | p3
+```
+
+For more complicated (non-rectangular) regions, we first create a segmentation (a polygon) that is our selection mask. In a real analysis, you could use Loupe Browser or Xenium Explorer or another image software to do this.
+
+```{r}
+#| label: dataset_28
+
+# A shaped selection (we start from the top left corner)
+segmentation_mask = data.frame(
+  x = c(8000, 10000, 10000, 9000, 8000, 8000),
+  y = c(8000, 8000, 6000, 7000, 6000, 8000)
+)
+segmentation_mask$cell = "selection1"
+segmentation_mask = CreateSegmentation(segmentation_mask)
+```
+
+We then use the `Overlay` function to select the region:
+
+```{r}
+#| label: dataset_29
+
+# Note: there is also an invert argument here
+sc[["region4"]] = Overlay(sc[["slice1.008um"]], segmentation_mask)
+
+p1 = SpatialFeaturePlot(sc, images="region4", "nCount_RNA.008um", pt.size.factor = 10)
+```
+
+**Important**: We now have four additional images that are all associated with the `RNA.008um` assay. This means that whenever we plot data from this assay in a spatial context, all images will be plotted. 
+
+To avoid this behaviour, we can explictly specify an image when plotting. Alternatively, we set the default assay for the additional images to an empty string (meaning they will not be included anymore).
+
+```{r}
+#| label: dataset_28
+
+DefaultAssay(sc[["region1"]]) = ""
+DefaultAssay(sc[["region2"]]) = ""
+DefaultAssay(sc[["region3"]]) = ""
+DefaultAssay(sc[["region4"]]) = ""
+```
+
 
 ## Plotting
 
@@ -406,7 +584,7 @@ Now that we have the data in Seurat, we can start visualizing gene expression us
 We can create a **violin plot** to show the expression of specific genes (e.g., "Nrgn", "Igf2", "Hap1") in the RNA.008um assay:
 
 ```{r}
-#| label: dataset_22
+#| label: dataset_29
 
 VlnPlot(sc, features=c("Nrgn", "Igf2", "Hap1"), layer="counts", pt.size=0) + NoLegend()
 ```
@@ -418,7 +596,7 @@ Since the counts are raw and not normalized, interpreting them directly can be c
 We can also visualize gene expression in a spatial context using a **spatial feature plot**:
 
 ```{r}
-#| label: dataset_23
+#| label: dataset_30
 #| dpi: 75
 
 SpatialFeaturePlot(sc, features=c("Nrgn", "Igf2", "Hap1"), slot="counts")
@@ -434,7 +612,7 @@ You may observe visual artefacts in the image. This can occur when the image is 
 Finally, we can plot the gene expression in the **RNA.016um assay**. This allows us to visualize how the data changes when comparing different bin sizes.
 
 ```{r}
-#| label: dataset_24
+#| label: dataset_31
 
 DefaultAssay(sc) = "RNA.016um"
 p1 = VlnPlot(sc, features=c("Nrgn"), layer="counts", pt.size=0) + NoLegend()
