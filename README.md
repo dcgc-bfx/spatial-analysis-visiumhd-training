@@ -37,7 +37,9 @@ We welcome contributions! To contribute:
 
 ## Citation
 
-If you used our workbooks to analyze your data, please cite it by mentioning the DRESDEN-concept Genome Center URL "https://genomecenter.tu-dresden.de". 
+If you used our workbooks for your own work, please cite them:
+
+> DRESDEN-concept Genome Center (2025). *Analysis of Spatial Transcriptomics Data (Visium HD)*. Zenodo. https://doi.org/10.5281/zenodo.22918189
 
 ## Quick Start 🚀
 
