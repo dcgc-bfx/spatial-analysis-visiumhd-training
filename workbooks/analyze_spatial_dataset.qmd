@@ -154,15 +154,18 @@ We identify mitochondrial genes using a prefix ("^mt-" means all genes starting 
 sc = PercentageFeatureSet(sc, pattern="^mt-", col.name="pMito_RNA.008um") 
 
 p1 = VlnPlot(sc, features="pMito_RNA.008um", pt.size=0, layer="counts") + NoLegend()
-p2 = SpatialFeaturePlot(sc, features="pMito_RNA.008um") + NoLegend()
+p2 = SpatialFeaturePlot(sc, features="pMito_RNA.008um") 
 p1 | p2
 ```
 
 ```{r}
 #| label: qc_6
 
-filtered_bins_mito = WhichCells(sc, expression=pMito_RNA.008um>30)
+filtered_bins_mito = WhichCells(sc, expression=pMito_RNA.008um>40)
 SpatialDimPlot(sc, cells.highlight=filtered_bins_mito, cols.highlight=c("#FFFF00", "grey50")) + NoLegend() + ggtitle(paste(length(filtered_bins_mito), "bins filtered"))
+
+
+
 ```
 
 ::: {.callout-note}
@@ -172,6 +175,16 @@ Calculate another QC metric that shows the percentage of counts from hemoglobin 
 
 Next, visualize this metric using both a violin plot and a spatial plot. Do many bins show a high proportion of hemoglobin expression?
 :::
+
+```{r}
+#| label: qc_hb
+
+sc = PercentageFeatureSet(sc, pattern="^Hb[ab]-", col.name="pHemoglobin.008um") 
+
+p1 = VlnPlot(sc, features="pHemoglobin.008um", pt.size=0, layer="counts") + NoLegend()
+p2 = SpatialFeaturePlot(sc, features="pHemoglobin.008um") 
+p1 | p2
+```
 
 ## Filtering of bins
 
@@ -192,7 +205,7 @@ Apply the filters:
 
 sc = subset(sc, nCount_RNA.008um < 30 | nCount_RNA.008um > 2000, invert=TRUE) %>% suppressWarnings()
 sc = subset(sc, nFeature_RNA.008um < 30 | nFeature_RNA.008um > 1000, invert=TRUE) %>% suppressWarnings()
-sc = subset(sc, pMito_RNA.008um > 30, invert=TRUE) %>% suppressWarnings()
+sc = subset(sc, pMito_RNA.008um > 40, invert=TRUE) %>% suppressWarnings()
 sc[["RNA.008um"]]
 ```
 
@@ -211,11 +224,6 @@ summary(genes_expressed)
 
 Let us quickly summarize these numbers. Most of the genes are expressed in at least 30 bins, on average in 4063 bins and maximum in 283994 bins.
 
-```{r}
-#| label: qc_10
-
-summary(genes_expressed)
-```
 
 Keep genes expressed in >10 bins:
 
@@ -321,6 +329,7 @@ top10
 
 p = VariableFeaturePlot(sc, selection.method="vst")
 p = LabelPoints(plot=p, points=top10, repel=TRUE)
+p = p + ylim(0, 15)
 p
 ```
 
@@ -402,7 +411,11 @@ Visualize first two PCs:
 ```{r}
 #| label: preprocessing_11
 
-DimPlot(sc, reduction="pca.sketch", dims=c(1, 2))
+p1 = DimPlot(sc, reduction="pca.sketch", dims=c(1, 2)) + NoLegend()
+p2 = DimPlot(sc, reduction="pca.sketch", dims=c(2, 3)) + NoLegend()
+p3 = DimPlot(sc, reduction="pca.sketch", dims=c(1, 3)) + NoLegend()
+
+p1 | p2 / p3
 ```
 
 ::: {.callout-note}
@@ -489,6 +502,10 @@ The clusters are saved as bin metadata column `seurat_clusters.sketch`. Let us s
 #| label: clustering_3
 
 table(sc$seurat_clusters.sketch)
+
+# Suggestion: use a cluster tree
+# sc.ct = BuildClusterTree(sc)
+# PlotClusterTree(sc)
 ```
 
 Note that we can provide multiple resolution values to test different clustering resolutions.
@@ -532,7 +549,7 @@ Test different `n.neighbors` to find a good 2D representation of the dataset. Pl
 
 ```{r}
 #| label: clustering_4_5_test
-sc = RunUMAP(sc, reduction="pca.sketch", reduction.name="umap.sketch.test", dims=1:30, 
+sc = RunUMAP(sc, reduction="pca.sketch", reduction.name="umap.sketch.test", dims=1:5, 
              n.neighbors=100)
 
 p1 = DimPlot(sc, reduction="umap.sketch", label=TRUE) + NoLegend()
@@ -577,7 +594,7 @@ The Seurat object now contains a full PCA (`pca.008um`), a full UMAP (`umap.008u
 #| label: clustering_7
 
 p1 = DimPlot(sc, reduction="umap.008um", label=TRUE) + NoLegend()
-p2 = SpatialDimPlot(sc) + NoLegend() + scale_fill_manual(values=cal_pal50)
+p2 = SpatialDimPlot(sc, pt.size.factor=5) + NoLegend() + scale_fill_manual(values=cal_pal50)
 p1 | p2
 ```
 
@@ -707,20 +724,21 @@ Try to find the identity of one cluster!
 
 To further explore the results and visualize gene expression for known marker genes across different clusters, we can use various plotting functions.
 
-A **violin plot** allows us to visualize the distribution of gene expression across clusters. For example, we can plot the expression of genes Acta2 and Apoe:
+A **violin plot** allows us to visualize the distribution of gene expression across clusters. For example, we can plot the expression of genes Ptgds, Acta2 and Apoe:
 
 ```{r}
 #| label: plotting_1
 
-VlnPlot(sc, features=c("Acta2", "Apoe"), pt.size=0, ncol=1) + NoLegend()
+genes = c("Ptgds", "Acta2", "Apoe")
+VlnPlot(sc, features=genes, pt.size=0, ncol=1) + NoLegend()
 ```
 
-We can also visualize the gene expression directly on top of the **UMAP plot**. This will show the expression of genes such as Acta2 and Apoe across all cells in the low-dimensional UMAP space:
+We can also visualize the gene expression directly on top of the **UMAP plot**. This will show the expression of genes such as Ptgds, Acta2 and Apoe across all cells in the low-dimensional UMAP space:
 
 ```{r}
 #| label: plotting_2
 
-FeaturePlot(sc, features=c("Acta2", "Apoe"))
+FeaturePlot(sc, features=genes)
 ```
 
 Since we are working with spatial data, you can visualize gene expression in the **spatial context**, showing where the genes are expressed on the tissue section:
@@ -728,7 +746,7 @@ Since we are working with spatial data, you can visualize gene expression in the
 ```{r}
 #| label: plotting_3
 
-SpatialFeaturePlot(sc, features=c("Acta2", "Apoe"))
+SpatialFeaturePlot(sc, features=genes, image.alpha=0.1)
 ```
 
 A **dot plot** allows for the visualization of gene expression across multiple clusters for several genes. We have already introduced the dot plot for exploring marker gene expression. To avoid redundancy, we will not revisit it in this section.
@@ -890,6 +908,16 @@ sc = FindClusters(sc, resolution=0.5, algorithm="leiden")
 sc$banksy_domains.008um = sc$seurat_clusters
 ```
 
+```{r}
+#| label: spatial_7_2
+
+p1 = SpatialDimPlot(sc, group.by="seurat_clusters.008um") + NoLegend() + ggtitle("Seurat") + scale_fill_manual(values=cal_pal50)
+p2 = SpatialDimPlot(sc, group.by="banksy_clusters.008um") + NoLegend() + ggtitle("BANKSY") + scale_fill_manual(values=cal_pal50)
+p3 = SpatialDimPlot(sc, group.by="banksy_domains.008um") + NoLegend() + ggtitle("BANKSY") + scale_fill_manual(values=cal_pal50)
+(p1 | p2) / p3
+p2 | p3
+```
+
 If your clustering results look similar to those from the previous BANKSY run (with `lambda=0.2`), this could indicate that the dominant tissue structures are already captured at a local level. We encourage you to systematically explore different parameter settings for `lambda`, `k_geom`, and `resolution` to assess their impact on clustering outcomes and spatial domain resolution.
 
 Since this BANKSY run is also complete, we again remove the assay and PCA reduction to free up memory:
@@ -948,14 +976,17 @@ Next, we create a Seurat object that only includes the bins that fall within the
 ```{r}
 #| label: annot_2
 
+# Subset
 cortex_bins = Cells(sc[["cortex"]])
 cortex = subset(sc, cells=cortex_bins)
+
+# Make diet - get rid of old graphs, neighbors, ...
+cortex = DietSeurat(cortex)
+
+# Not entirely clean
 cortex[["sketch"]] = NULL
-cortex[["pca.sketch"]] = NULL
-cortex[["umap.sketch"]] = NULL
-cortex[["pca.008um"]] = NULL
-cortex[["umap.008um"]] = NULL
-cortex[["banksy_umap.008um"]] = NULL
+cortex@tools$TransferSketchLabels = NULL
+
 cortex
 ```
 
@@ -963,24 +994,29 @@ To make the analysis computationally manageable, we sketch the dataset down to 5
 
 ```{r}
 #| label: annot_3
+# DefaultAssay(cortex) = "RNA.008um"
 
 # Sketch
-cortex = FindVariableFeatures(cortex, nfeatures=1000)
+cortex = FindVariableFeatures(cortex, selection.method="vst")
 cortex = SketchData(
   object = cortex,
   ncells = 50000,
   method = "LeverageScore",
   sketched.assay = "sketch",
-  over.write = TRUE
+  over.write = TRUE,
+  features = VariableFeatures(cortex)
 )
-# Feature selection
-cortex = FindVariableFeatures(cortex, nfeatures=1000)
+DefaultAssay(cortex) = "sketch"
 
 # Scale data
 cortex = ScaleData(cortex, features=VariableFeatures(cortex))
 
 # PCA
 cortex = RunPCA(cortex, reduction.name="pca.sketch", features=VariableFeatures(cortex), npcs=50, nfeatures.print=5)
+
+# Neighbors and UMAP
+cortex = FindNeighbors(cortex, reduction="pca.sketch", dims=1:50)
+cortex = RunUMAP(cortex, reduction="pca.sketch", reduction.name="umap.sketch", return.model=TRUE, dims=1:50, verbose=TRUE)
 ```
 
 We now prepare the `SpatialRNA` object required by `spacexr`:
@@ -1088,7 +1124,7 @@ cortex = AddMetaData(cortex, metadata=RCTD_results)
 
 # Replace NA (not available) with "unknown"
 cortex$doublet = as.character(cortex$doublet)
-cortex$doublet[is.na(cortex$doublet)] = "unknown"
+cortex$doublet[is.na(cortex$doublet)] = "Unknown"
 cortex$doublet = factor(cortex$doublet)
 
 cortex$first_cell_type = as.character(cortex$first_cell_type)
@@ -1109,13 +1145,16 @@ We now project the RCTD results from the sketch cortex dataset to the full corte
 
 DefaultAssay(cortex) = "RNA.008um"
 
+# Project results back to full cortex dataset
 cortex = ProjectData(cortex,
                  sketched.assay="sketch", assay="RNA.008um", 
-                 sketched.reduction="pca.sketch", full.reduction="pca.008um", 
+                 sketched.reduction="pca.sketch", full.reduction="pca.008um",
+                 umap.model="umap.sketch",
                  refdata=list(doublet.008um="doublet",
                               first_cell_type.008um="first_cell_type",
                               second_cell_type.008um="second_cell_type"),
-                 dims=1:30)
+                 dims=1:50)
+
 ```
 
 Next, we include the projected predictions in the original brain dataset (`sc`):
@@ -1125,7 +1164,7 @@ Next, we include the projected predictions in the original brain dataset (`sc`):
 
 # We will the columns with "unknown" and then set the values for all cells of the cortex
 cortex_bins = rownames(cortex[[]])
-sc$doublet.008um = "unknown"
+sc$doublet.008um = "Unknown"
 sc$doublet.008um[cortex_bins] = cortex$doublet.008um[cortex_bins]
 sc$doublet.008um = factor(sc$doublet.008um)
 
@@ -1151,8 +1190,10 @@ layered_excitatory_neurons = c("L2-3 IT CTX", "L4-5 IT CTX", "L5 IT CTX")
 layered_excitatory_bins = CellsByIdentities(sc, idents=layered_excitatory_neurons)
 layered_excitatory_bins[["NA"]] = NULL
 
-SpatialDimPlot(sc, cells.highlight=layered_excitatory_bins, facet.highlight=TRUE, cols.highlight=c("#FFFF00", "grey50")) + NoLegend()
+SpatialDimPlot(sc, cells.highlight=layered_excitatory_bins, facet.highlight=TRUE, cols.highlight=c("#FFFF00", "grey50"), combine=TRUE) + NoLegend()
 ```
+
+Note that the RCTD approach identified only a subset of cells and they are difficult to see in the plot. Therefore, we try to use these predictions to annotate clusters.
 
 ## Annotate clusters and domains
 
