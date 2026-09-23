@@ -1,8 +1,8 @@
 ![Banner](docs/spatial_banner.png)
 
-# Analysis of Spatial Transcriptomics Data
+# Analysis of Spatial Transcriptomics Data (Visium HD)
 
-Welcome to our **hands-on workbook collection** to learn spatial transcriptomics data analysis!
+Welcome to our **hands-on workbook collection** to learn spatial transcriptomics data analysis, with a focus on 10x Genomics Visium HD data!
 
 Spatial transcriptomics allows us to measure gene expression across tissue sections while preserving spatial information, helping us understand not just **what** genes are active, but **where** they are active.
 
@@ -41,17 +41,17 @@ If you used our workbooks to analyze your data, please cite it by mentioning the
 
 ## Quick Start 🚀
 
-On a linux laptop, you can get started right away using our containerized environment:
+On a linux laptop, you need to install singularity first and then you can get started right away using our containerized environment:
 
 ```bash
 # Clone the repository
 git clone git@github.com:dcgc-bfx/2025-ngs-cn-summer-school.git
 
 # Container image
-SINGULARITY_IMAGE=oras://gcr.hrz.tu-chemnitz.de/dcgc-bfx/singularity/singularity-single-cell:Unstable
+SINGULARITY_IMAGE=oras://gcr.hrz.tu-chemnitz.de/dcgc-bfx/singularity/singularity-single-cell:v1.6.5
 
 # Set user, password and port
-export SINGULARITYENV_RSTUDIO_USER=${whoami}
+export SINGULARITYENV_RSTUDIO_USER=$(whoami)
 export SINGULARITYENV_RSTUDIO_PASSWORD="verysecret"
 export SINGULARITYENV_RSTUDIO_PORT=9999
 
